@@ -73,14 +73,18 @@
       width: 100%;
       max-width: 800px;
       z-index: 100;
-      /* FIX SCROLL: Occupa altezza massima e abilita scroll se necessario */
+      
+      /* FIX SCROLL: Occupa altezza massima e abilita scroll */
       position: absolute;
       top: 0;
       bottom: 0;
       overflow-y: auto; 
       -webkit-overflow-scrolling: touch;
       padding-top: 20px;
-      padding-bottom: 40px; /* Spazio extra per scrollare fino in fondo */
+      padding-bottom: 40px;
+      
+      /* QUESTA È LA RIGA MAGICA CHE ABILITA LO SCROLL SU MOBILE: */
+      touch-action: pan-y; 
     }
 
     h1 {
