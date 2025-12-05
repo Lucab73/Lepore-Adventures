@@ -421,6 +421,7 @@
     let gameOverButtonPlay = { x: 0, y: 0, w: 200, h: 70 };
     let gameOverButtonMenu = { x: 0, y: 0, w: 200, h: 70 };
     let animatedCoins = 0, animatedFired = 0, animatedStrikers = 0;
+    let levelComplete = false;
 
     const enemyPhrases = ["Sindaco di merda!", "Bastardo arrogante!", "Ridacci la Garisenda!", "Città 30 del cazzo!", "Sei una vergogna!", "Basta cantieri", "Vogliamo più salario accessorio!", "Bimbominkia!", "Pajàz!", "Bagaj!"];
     const player = { x: 100, y: 300, vx: 0, vy: 0, width: 50, height: 90, onGround: false, facing: 1, walkFrame: 0, walkTimer: 0, powerUpTimer: 0 };
@@ -478,6 +479,7 @@
     }
 
     function generateLevel(lvl) {
+      levelComplete = false; 
       platforms = []; coinList = []; particles = []; enemies = []; 
       powerups = []; floatTexts = []; buildings = []; farBuildings = []; 
       clouds = []; obstacles = []; atmospherics = []; bosses = []; 
@@ -1071,7 +1073,7 @@
                 e.timer = 120 + Math.floor(Math.random() * 120); 
                 e.vx = 0; 
                 
-                // NO RIPETIZIONI: Pesca una frase finché non è diversa dall'ultima usata
+                // LOGICA NO-REPEAT: Scegli una frase finché non è diversa dall'ultima detta da questo nemico
                 let nextPhrase;
                 do {
                     nextPhrase = enemyPhrases[Math.floor(Math.random() * enemyPhrases.length)];
@@ -1080,11 +1082,19 @@
                 
                 const enemyScreenX = e.x - cameraX; 
                 const isVisible = enemyScreenX > -100 && enemyScreenX < canvas.width + 100; 
-                if (isVisible && globalVoiceTimer <= 0 && voiceMap[e.currentPhrase]) { 
+                
+                // CONTROLLO AUDIO:
+                // 1. Deve essere visibile
+                // 2. Il timer globale deve essere a zero (nessun altro parla)
+                // 3. Il livello NON deve essere finito (!levelComplete)
+                if (isVisible && globalVoiceTimer <= 0 && !levelComplete && voiceMap[e.currentPhrase]) { 
                     const sound = voiceMap[e.currentPhrase]; 
                     sound.currentTime = 0; 
                     sound.play().catch(err => console.log("Audio bloccato:", err)); 
-                    globalVoiceTimer = 120; 
+                    
+                    // Imposta il "silenzio" per gli altri a 60 frame (1 secondo) invece di 120
+                    // Così gli audio saranno più frequenti.
+                    globalVoiceTimer = 60; 
                 } 
             } else { 
                 e.state = 'walking'; 
@@ -1145,7 +1155,7 @@
 
       const playerAbsoluteX = (level === 6) ? (player.x + cameraX) : player.x;
       if (goal && player.x > goal.x - 40 && player.x < goal.x + 80 && !goal.reached) {
-        goal.reached = true; playerFrozen = true; playSound('win');
+        goal.reached = true; levelComplete = true; playerFrozen = true; playSound('win');
         
         // MODIFICA: Zittisce tutti i "Sindaco di..." immediatamente
         Object.values(voiceMap).forEach(audio => {
