@@ -280,7 +280,7 @@
         <strong style="color: #ef4444;">NON FARTI SFIDUCIARE!</strong>
       </p>
       <div id="loadingStatus" class="loading-text">Caricamento risorse...</div>
-      <button class="btn" id="startBtn" onclick="startGame()" style="display:none;">▶️ Inizia</button>
+      <button class="btn" id="startBtn" onclick="startGame()" style="display:none;">▶️ Inizia Mandato</button>
     </div>
   </div>
 
@@ -422,6 +422,7 @@
     let gameOverButtonMenu = { x: 0, y: 0, w: 200, h: 70 };
     let animatedCoins = 0, animatedFired = 0, animatedStrikers = 0;
     let levelComplete = false;
+    let lastGlobalPhrase = "";
 
     const enemyPhrases = ["Sindaco di merda!", "Bastardo arrogante!", "Ridacci la Garisenda!", "Città 30 del cazzo!", "Sei una vergogna!", "Basta cantieri", "Vogliamo più salario accessorio!", "Bimbominkia!", "Pajàz!", "Bagaj!"];
     const player = { x: 100, y: 300, vx: 0, vy: 0, width: 50, height: 90, onGround: false, facing: 1, walkFrame: 0, walkTimer: 0, powerUpTimer: 0 };
@@ -1073,12 +1074,16 @@
                 e.timer = 120 + Math.floor(Math.random() * 120); 
                 e.vx = 0; 
                 
-                // LOGICA NO-REPEAT: Scegli una frase finché non è diversa dall'ultima detta da questo nemico
+                // --- MODIFICA ANTI-RIPETIZIONE GLOBALE ---
                 let nextPhrase;
+                let tentativi = 0;
                 do {
                     nextPhrase = enemyPhrases[Math.floor(Math.random() * enemyPhrases.length)];
-                } while (nextPhrase === e.currentPhrase && enemyPhrases.length > 1);
+                    tentativi++;
+                } while (nextPhrase === lastGlobalPhrase && tentativi < 10);
+                
                 e.currentPhrase = nextPhrase;
+                lastGlobalPhrase = nextPhrase;
                 
                 const enemyScreenX = e.x - cameraX; 
                 const isVisible = enemyScreenX > -100 && enemyScreenX < canvas.width + 100; 
@@ -1094,7 +1099,7 @@
                     
                     // Imposta il "silenzio" per gli altri a 60 frame (1 secondo) invece di 120
                     // Così gli audio saranno più frequenti.
-                    globalVoiceTimer = 60; 
+                    globalVoiceTimer = 90; 
                 } 
             } else { 
                 e.state = 'walking'; 
