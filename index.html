@@ -42,7 +42,7 @@
     }
     body.game-active::before { opacity: 0; }
 
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; /* Rimuove il flash al tocco }
 
     /* LAYOUT DI CLICK INIZIALE */
     #clickLayer {
@@ -382,7 +382,10 @@
       "Sei una vergogna!": new Audio('Sei una vergogna!.mp3'),
       "Basta cantieri": new Audio('Basta cantieri.mp3'),
       "Vogliamo più salario accessorio!": new Audio('Vogliamo più salario accessorio!.mp3'),
-      "Bimbominkia!": new Audio('Bimbominkia!.mp3')
+      "Bimbominkia!": new Audio('Bimbominkia!.mp3'),
+      "Pajàz!": new Audio('Pajàz!.mp3'),
+      "Bagaj!": new Audio('Bagaj!.mp3') 
+
     };
     Object.values(voiceMap).forEach(audio => audio.volume = 0.8);
 
@@ -419,7 +422,7 @@
     let gameOverButtonMenu = { x: 0, y: 0, w: 200, h: 70 };
     let animatedCoins = 0, animatedFired = 0, animatedStrikers = 0;
 
-    const enemyPhrases = ["Sindaco di merda!", "Bastardo arrogante!", "Ridacci la Garisenda!", "Città 30 del cazzo!", "Sei una vergogna!", "Basta cantieri", "Vogliamo più salario accessorio!", "Bimbominkia!"];
+    const enemyPhrases = ["Sindaco di merda!", "Bastardo arrogante!", "Ridacci la Garisenda!", "Città 30 del cazzo!", "Sei una vergogna!", "Basta cantieri", "Vogliamo più salario accessorio!", "Bimbominkia!", "Pajàz!", "Bagaj!"];
     const player = { x: 100, y: 300, vx: 0, vy: 0, width: 50, height: 90, onGround: false, facing: 1, walkFrame: 0, walkTimer: 0, powerUpTimer: 0 };
 
     const quartieri = [
@@ -1059,16 +1062,21 @@
         if (e.isFired) return;
         if (e.type === 'striker') {
           const dist = player.x - e.x; const detectionRange = (level >= 4) ? 350 : 200;
-          if (Math.abs(dist) < detectionRange && !isDead) { if (level >= 4) { e.state = 'running'; e.vx = dist > 0 ? 2.5 : -2.5; e.facing = dist > 0 ? 1 : -1; } else { if (e.state !== 'alert' && e.state !== 'running') { e.state = 'alert'; e.alertTimer = 40; } if (e.state === 'alert') { e.alertTimer--; if (e.alertTimer <= 0) { e.state = 'running'; e.vx = dist > 0 ? 3.5 : -3.5; e.facing = dist > 0 ? 1 : -1; } } else if (e.state === 'running') { e.vx = dist > 0 ? 3.5 : -3.5; e.facing = dist > 0 ? 1 : -1; } } } else { e.vx = 0; e.state = 'idle'; e.alertTimer = 0; }
+          if (Math.abs(dist) < detectionRange && !isDead) { if (level >= 4) { e.state = 'running'; e.vx = dist > 0 ? 2.5 : -2.5; e.facing = dist > 0 ? 1 : -1; } else { if (e.state !== 'alert' && e.state !== 'running') { e.state = 'alert'; e.alertTimer = 40; } if (e.state === 'alert') { e.alertTimer--; if (e.alertTimer <= 0) { e.state = 'running'; e.vx = dist > 0 ? 3.0 : -3.0; e.facing = dist > 0 ? 1 : -1; } } else if (e.state === 'running') { e.vx = dist > 0 ? 3.0 : -3.0; e.facing = dist > 0 ? 1 : -1; } } } else { e.vx = 0; e.state = 'idle'; e.alertTimer = 0; }
           if (goal && e.x > goal.x - 300 && e.vx > 0) { e.vx = 0; e.state = 'talking'; }
         } else {
           e.timer--; if (e.timer <= 0) {
             if (e.state === 'walking') { 
                 e.state = 'talking'; 
-                // MODIFICA: Durata della parlata casuale (tra 2 e 4 secondi circa a 60fps)
                 e.timer = 120 + Math.floor(Math.random() * 120); 
                 e.vx = 0; 
-                e.currentPhrase = enemyPhrases[Math.floor(Math.random() * enemyPhrases.length)]; 
+                
+                // NO RIPETIZIONI: Pesca una frase finché non è diversa dall'ultima usata
+                let nextPhrase;
+                do {
+                    nextPhrase = enemyPhrases[Math.floor(Math.random() * enemyPhrases.length)];
+                } while (nextPhrase === e.currentPhrase && enemyPhrases.length > 1);
+                e.currentPhrase = nextPhrase;
                 
                 const enemyScreenX = e.x - cameraX; 
                 const isVisible = enemyScreenX > -100 && enemyScreenX < canvas.width + 100; 
