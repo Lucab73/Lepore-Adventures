@@ -225,8 +225,16 @@
     <p style="color: #fbbf24; margin-top: 20px; font-size: 14px;">(Ruota il telefono in orizzontale)</p>
   </div>
 
-  <audio id="introMusic" loop>
+   <audio id="introMusic" loop>
       <source src="Intro_music.mp3" type="audio/mpeg">
+  </audio>
+
+  <audio id="gameOverMusic">
+      <source src="game_over.mp3" type="audio/mpeg">
+  </audio>
+  
+  <audio id="victoryMusic">
+      <source src="vittoria.mp3" type="audio/mpeg">
   </audio>
 
   <div id="mainMenuContainer">
@@ -436,18 +444,46 @@
     function playVoteLossSound() { if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.8); gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.8); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.8); }
     
     function playGameOverSound() {
-      if (!audioCtx) return;
-      const now = audioCtx.currentTime;
+      // 1. Ferma musiche e intro
       if (backgroundMusic) { backgroundMusic.pause(); backgroundMusic.currentTime = 0; }
-      setTimeout(() => {
-        const introMusic = document.getElementById("introMusic");
-        if (introMusic) { introMusic.currentTime = 0; introMusic.play().catch(e => console.log("Errore audio:", e)); }
-      }, 3000);
-      const osc1 = audioCtx.createOscillator(); const gain1 = audioCtx.createGain(); osc1.type = 'triangle'; osc1.connect(gain1); gain1.connect(audioCtx.destination);
-      osc1.frequency.setValueAtTime(100, now); osc1.frequency.linearRampToValueAtTime(20, now + 3.0); gain1.gain.setValueAtTime(0.8, now); gain1.gain.linearRampToValueAtTime(0, now + 3.0);
-      const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain(); osc2.type = 'sawtooth'; osc2.connect(gain2); gain2.connect(audioCtx.destination);
-      osc2.frequency.setValueAtTime(110, now); osc2.frequency.linearRampToValueAtTime(10, now + 3.0); gain2.gain.setValueAtTime(0.3, now); gain2.gain.linearRampToValueAtTime(0, now + 3.0);
-      osc1.start(now); osc1.stop(now + 3.1); osc2.start(now); osc2.stop(now + 3.1);
+      const intro = document.getElementById("introMusic");
+      if (intro) { intro.pause(); intro.currentTime = 0; }
+
+      // 2. EFFETTO "CUPO E LENTO" (SINTETIZZATORE)
+      // Questo ricrea il suono grave che scende di tonalità
+      if (audioCtx) {
+          const now = audioCtx.currentTime;
+          
+          // Oscillatore 1: Tono basso triangolare
+          const osc1 = audioCtx.createOscillator(); 
+          const gain1 = audioCtx.createGain(); 
+          osc1.type = 'triangle'; 
+          osc1.connect(gain1); 
+          gain1.connect(audioCtx.destination);
+          
+          // Scende da 100Hz a 20Hz (molto grave) in 3 secondi
+          osc1.frequency.setValueAtTime(100, now); 
+          osc1.frequency.linearRampToValueAtTime(20, now + 3.0); 
+          
+          // Volume che sfuma
+          gain1.gain.setValueAtTime(0.8, now); 
+          gain1.gain.linearRampToValueAtTime(0, now + 3.0);
+          
+          // Oscillatore 2: Dente di sega per dare "grinta" al suono
+          const osc2 = audioCtx.createOscillator(); 
+          const gain2 = audioCtx.createGain(); 
+          osc2.type = 'sawtooth'; 
+          osc2.connect(gain2); 
+          gain2.connect(audioCtx.destination);
+          
+          osc2.frequency.setValueAtTime(110, now); 
+          osc2.frequency.linearRampToValueAtTime(10, now + 3.0); 
+          gain2.gain.setValueAtTime(0.3, now); 
+          gain2.gain.linearRampToValueAtTime(0, now + 3.0);
+          
+          osc1.start(now); osc1.stop(now + 3.1); 
+          osc2.start(now); osc2.stop(now + 3.1);
+      }
     }
 
     setTimeout(() => { if (imagesLoaded < 3) { document.getElementById('loadingStatus').textContent = "Avvio forzato..."; document.getElementById('startBtn').style.display = "inline-block"; } }, 3000);
@@ -1030,24 +1066,52 @@ function drawEverything() {
     }
 
     function drawDonationScreen() {
-      const introMusic = document.getElementById("introMusic");
-      if (introMusic && introMusic.paused) { introMusic.play().catch(e => console.log("Errore audio:", e)); }
       canvas.style.cursor = 'pointer';
+      
+      // Sfondo
       if (imgBolognaIntro.complete) ctx.drawImage(imgBolognaIntro, 0, 0, canvas.width, canvas.height);
       ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.textAlign = 'center';
+
       if (donationStep === 0) {
-        const targetCoins = coins; const targetFired = Math.floor(coins / 10); const targetStrikers = Math.floor(coins / 6); const speed = 8; let allDone = true;
+        // --- LOGICA CONTEGGIO ---
+        const targetCoins = coins; 
+        const targetFired = Math.floor(coins / 10); 
+        const targetStrikers = Math.floor(coins / 6); 
+        const speed = 8; 
+        let allDone = true;
+
         if (animatedCoins < targetCoins) { animatedCoins += speed; if (animatedCoins > targetCoins) animatedCoins = targetCoins; allDone = false; if (Math.random() > 0.7) playSound('coin'); }
         if (animatedFired < targetFired) { animatedFired += Math.ceil(speed / 10); if (animatedFired > targetFired) animatedFired = targetFired; allDone = false; if (Math.random() > 0.7) playSound('coin'); }
         if (animatedStrikers < targetStrikers) { animatedStrikers += Math.ceil(speed / 6); if (animatedStrikers > targetStrikers) animatedStrikers = targetStrikers; allDone = false; if (Math.random() > 0.7) playSound('coin'); }
-        ctx.fillStyle = '#fbbf24'; ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 4; ctx.font = 'bold 52px serif'; ctx.strokeText('COMPLIMENTI!', canvas.width / 2, canvas.height / 2 - 40); ctx.fillText('COMPLIMENTI!', canvas.width / 2, canvas.height / 2 - 40);
-        ctx.font = 'bold 42px serif'; ctx.strokeText('HAI SCONFITTO I PERFIDI', canvas.width / 2, canvas.height / 2 + 20); ctx.fillText('HAI SCONFITTO I PERFIDI', canvas.width / 2, canvas.height / 2 + 20); ctx.strokeText('SINDACALISTI!', canvas.width / 2, canvas.height / 2 + 70); ctx.fillText('SINDACALISTI!', canvas.width / 2, canvas.height / 2 + 70);
+
+        // --- DISEGNO TESTI ---
+        ctx.fillStyle = '#fbbf24'; ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 4; ctx.font = 'bold 52px serif'; 
+        ctx.strokeText('COMPLIMENTI!', canvas.width / 2, canvas.height / 2 - 40); ctx.fillText('COMPLIMENTI!', canvas.width / 2, canvas.height / 2 - 40);
+        
+        ctx.font = 'bold 42px serif'; 
+        ctx.strokeText('HAI SCONFITTO I PERFIDI', canvas.width / 2, canvas.height / 2 + 20); ctx.fillText('HAI SCONFITTO I PERFIDI', canvas.width / 2, canvas.height / 2 + 20); 
+        ctx.strokeText('SINDACALISTI!', canvas.width / 2, canvas.height / 2 + 70); ctx.fillText('SINDACALISTI!', canvas.width / 2, canvas.height / 2 + 70);
+        
         ctx.fillStyle = '#ffffff'; ctx.font = 'bold 32px serif'; ctx.fillText(`💰 Soldi rubati: €${animatedCoins}`, canvas.width / 2, canvas.height / 2 + 140);
         ctx.fillStyle = '#ff4444'; ctx.fillText(`👷 Dipendenti licenziati: ${animatedFired}`, canvas.width / 2, canvas.height / 2 + 190);
         ctx.fillStyle = '#ff9900'; ctx.fillText(`✊ Scioperanti licenziati: ${animatedStrikers}`, canvas.width / 2, canvas.height / 2 + 240);
-        if (allDone && stepTimer > 0) stepTimer--; else if (allDone && stepTimer <= 0) donationStep = 1;
+
+        // --- GESTIONE FINE CONTEGGIO E AVVIO MUSICA ---
+        if (allDone) {
+            // QUI PARTE LA MUSICA VITTORIA (SOLO QUANDO IL CONTEGGIO È FINITO)
+            const vicAudio = document.getElementById("victoryMusic");
+            if (vicAudio && vicAudio.paused) { 
+                if (backgroundMusic) backgroundMusic.pause(); // Sicurezza
+                vicAudio.play().catch(e => console.log("Errore audio Vittoria:", e)); 
+            }
+
+            if (stepTimer > 0) stepTimer--; 
+            else donationStep = 1;
+        }
+
       } else if (donationStep === 1) {
+        // ... (resto della logica donationStep 1 identica a prima) ...
         ctx.fillStyle = '#fff'; ctx.font = 'bold 36px serif'; ctx.fillText('VUOI RESTITUIRE I', canvas.width / 2, canvas.height / 2 - 80);
         ctx.fillStyle = '#22c55e'; ctx.font = 'bold 48px serif'; ctx.fillText(`€${coins}`, canvas.width / 2, canvas.height / 2 - 30);
         ctx.fillStyle = '#fff'; ctx.font = 'bold 32px serif'; ctx.fillText('SOTTRATTI AL FONDO', canvas.width / 2, canvas.height / 2 + 15); ctx.fillText('SALARIO ACCESSORIO?', canvas.width / 2, canvas.height / 2 + 55);
@@ -1057,7 +1121,9 @@ function drawEverything() {
         ctx.fillStyle = '#ef4444'; ctx.strokeStyle = '#991b1b'; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(buttonNoRect.x, buttonNoRect.y, buttonNoRect.w, buttonNoRect.h, 15); ctx.fill(); ctx.stroke();
         ctx.fillStyle = '#fff'; ctx.font = 'bold 32px Arial'; ctx.fillText('NO', buttonNoRect.x + buttonNoRect.w / 2, buttonNoRect.y + 42);
         if (noAttempts > 0) { ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 20px Arial'; ctx.fillText(`Tentativi falliti: ${noAttempts}`, canvas.width / 2, canvas.height / 2 + 180); }
+      
       } else if (donationStep === 2) {
+        // ... (resto della logica donationStep 2 identica a prima) ...
         ctx.fillStyle = '#ef4444'; ctx.strokeStyle = '#000'; ctx.lineWidth = 5; ctx.font = 'bold 56px serif'; ctx.strokeText('LEPORE FUGGE', canvas.width / 2, canvas.height / 2 - 60); ctx.fillText('LEPORE FUGGE', canvas.width / 2, canvas.height / 2 - 60);
         ctx.strokeText('CON IL MALLOPPO! 💰', canvas.width / 2, canvas.height / 2); ctx.fillText('CON IL MALLOPPO! 💰', canvas.width / 2, canvas.height / 2);
         ctx.fillStyle = '#fbbf24'; ctx.font = 'italic 28px serif'; ctx.fillText('Era prevedibile...', canvas.width / 2, canvas.height / 2 + 60); ctx.font = 'italic 24px serif'; ctx.fillText('il sindaco ha sempre ragione! 😏', canvas.width / 2, canvas.height / 2 + 95);
@@ -1065,8 +1131,6 @@ function drawEverything() {
     }
 
     function drawGameOverScreen() {
-      const introMusic = document.getElementById("introMusic");
-      if (introMusic && introMusic.paused) { introMusic.play().catch(e => console.log("Errore audio:", e)); } 
       canvas.style.cursor = 'pointer';
       if (imgBolognaIntro.complete) ctx.drawImage(imgBolognaIntro, 0, 0, canvas.width, canvas.height);
       ctx.fillStyle = 'rgba(0, 0, 0, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1427,7 +1491,15 @@ function drawEverything() {
         if (deathTimer <= 0) {
             livesFalling = false;
             if (lives <= 0) {
-              if (!showGameOver) { showGameOver = true; playerFrozen = true; document.getElementById('levelSelect').value = level; gameOverButtonPlay = { x: canvas.width / 2 - 220, y: canvas.height / 2 + 60, w: 200, h: 70 }; gameOverButtonMenu = { x: canvas.width / 2 + 20, y: canvas.height / 2 + 60, w: 200, h: 70 }; }
+              if (!showGameOver) { showGameOver = true; playerFrozen = true;
+               // --- QUI PARTE LA MUSICA GAME OVER (Sincronizzata col video) ---
+                  const goAudio = document.getElementById("gameOverMusic");
+                  if (goAudio) {
+                      goAudio.volume = 1.0; 
+                      goAudio.currentTime = 0;
+                      goAudio.play().catch(e => console.log("Errore audio GO:", e));
+                  }
+              document.getElementById('levelSelect').value = level; gameOverButtonPlay = { x: canvas.width / 2 - 220, y: canvas.height / 2 + 60, w: 200, h: 70 }; gameOverButtonMenu = { x: canvas.width / 2 + 20, y: canvas.height / 2 + 60, w: 200, h: 70 }; }
             } else { 
               platforms.forEach(pl => { if (pl.type === 'moving' && pl.originalVx !== undefined) pl.vx = pl.originalVx; });
               resetPlayerPos(); isDead = false; player.vx = 0; player.vy = 0; if (level === 7) player.powerUpTimer = 999999; 
@@ -1442,7 +1514,12 @@ function drawEverything() {
       
       if (showDonationScreen) {
         if (donationStep === 0) { stepTimer--; if (stepTimer <= 0) donationStep = 1; }
-        else if (donationStep === 2) { stepTimer--; if (stepTimer <= 0) { showDonationScreen = false; isGameRunning = false; document.body.classList.remove('game-active'); document.getElementById('mainMenuContainer').style.display = 'flex'; document.getElementById('gameArea').style.display = 'none'; level = 1; coins = 0; lives = 40000; isBossLevel = false; resetPlayerPos(); document.getElementById('levelSelect').value = "1"; if(backgroundMusic) { backgroundMusic.pause(); backgroundMusic.currentTime = 0; } } }
+        else if (donationStep === 2) { stepTimer--; if (stepTimer <= 0) { showDonationScreen = false;
+        // --- AGGIUNTA: FERMA AUDIO VITTORIA ---
+                 const vicAudio = document.getElementById("victoryMusic");
+                 if(vicAudio) { vicAudio.pause(); vicAudio.currentTime = 0; }
+                 // -------------------------------------- 
+        isGameRunning = false; document.body.classList.remove('game-active'); document.getElementById('mainMenuContainer').style.display = 'flex'; document.getElementById('gameArea').style.display = 'none'; level = 1; coins = 0; lives = 40000; isBossLevel = false; resetPlayerPos(); document.getElementById('levelSelect').value = "1"; if(backgroundMusic) { backgroundMusic.pause(); backgroundMusic.currentTime = 0; } } }
         return;
       }
       if (showGameOver) return;
@@ -1676,7 +1753,12 @@ function drawEverything() {
       canvas.addEventListener('click', (e) => {
         const pos = getScaledPos(canvas, e);
         if (showGameOver) {
-          if (pos.x >= gameOverButtonPlay.x && pos.x <= gameOverButtonPlay.x + gameOverButtonPlay.w && pos.y >= gameOverButtonPlay.y && pos.y <= gameOverButtonPlay.y + gameOverButtonPlay.h) { playSound('coin'); const introMusic = document.getElementById("introMusic"); if (introMusic) { introMusic.pause(); introMusic.currentTime = 0; } const selectedLevel = parseInt(document.getElementById('levelSelect').value); level = selectedLevel; document.getElementById('level').textContent = level; showGameOver = false; lives = 40000; targetLives = 40000; coins = 0; playerFrozen = false; document.getElementById('lives').textContent = lives.toLocaleString('it-IT'); document.getElementById('coins').textContent = 0; if (level === 7) { coins = 500; document.getElementById('coins').textContent = coins; } playMusicForLevel(level); generateLevel(level); }
+          if (pos.x >= gameOverButtonPlay.x && pos.x <= gameOverButtonPlay.x + gameOverButtonPlay.w && pos.y >= gameOverButtonPlay.y && pos.y <= gameOverButtonPlay.y + gameOverButtonPlay.h) { playSound('coin');
+           // --- AGGIUNTA: FERMA AUDIO GAME OVER ---
+            const goAudio = document.getElementById("gameOverMusic");
+            if(goAudio) { goAudio.pause(); goAudio.currentTime = 0; }
+            // ---------------------------------------
+          const introMusic = document.getElementById("introMusic"); if (introMusic) { introMusic.pause(); introMusic.currentTime = 0; } const selectedLevel = parseInt(document.getElementById('levelSelect').value); level = selectedLevel; document.getElementById('level').textContent = level; showGameOver = false; lives = 40000; targetLives = 40000; coins = 0; playerFrozen = false; document.getElementById('lives').textContent = lives.toLocaleString('it-IT'); document.getElementById('coins').textContent = 0; if (level === 7) { coins = 500; document.getElementById('coins').textContent = coins; } playMusicForLevel(level); generateLevel(level); }
           if (pos.x >= gameOverButtonMenu.x && pos.x <= gameOverButtonMenu.x + gameOverButtonMenu.w && pos.y >= gameOverButtonMenu.y && pos.y <= gameOverButtonMenu.y + gameOverButtonMenu.h) { location.reload(); } return;
         }
         if (showDonationScreen && donationStep === 1) {
